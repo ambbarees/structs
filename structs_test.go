@@ -1451,3 +1451,28 @@ func TestMap_InterfaceTypeWithMapValue(t *testing.T) {
 
 	_ = Map(a)
 }
+
+func TestMap_WithCustomTag(t *testing.T) {
+	type A struct {
+		Name    string      `export:"name"`
+		IP      string      `export:"ip"`
+		Query   string      `export:"query"`
+		Payload interface{} `export:"payload1"`
+	}
+
+	a := A{
+		Name:    "test",
+		IP:      "127.0.0.1",
+		Query:   "",
+		Payload: map[string]string{"test_param": "test_param"},
+	}
+
+	defer func() {
+		err := recover()
+		if err != nil {
+			t.Error("Converting Map with an interface{} type with map value should not panic")
+		}
+	}()
+
+	_ = MapWithTag(a, "export")
+}

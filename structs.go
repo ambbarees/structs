@@ -32,6 +32,14 @@ func New(s interface{}) *Struct {
 	}
 }
 
+func NewWithTag(s interface{}, tagName string) *Struct {
+	return &Struct{
+		raw:     s,
+		value:   strctVal(s),
+		TagName: tagName,
+	}
+}
+
 // Map converts the given struct to a map[string]interface{}, where the keys
 // of the map are the field names and the values of the map the associated
 // values of the fields. The default key string is the struct field name but
@@ -231,6 +239,18 @@ func (s *Struct) Fields() []*Field {
 //
 // It panics if s's kind is not struct.
 func (s *Struct) Names() []string {
+	fields := getFields(s.value, s.TagName)
+
+	names := make([]string, len(fields))
+
+	for i, field := range fields {
+		names[i] = field.Name()
+	}
+
+	return names
+}
+
+func (s *Struct) TagNames() []string {
 	fields := getFields(s.value, s.TagName)
 
 	names := make([]string, len(fields))
@@ -446,6 +466,10 @@ func Map(s interface{}) map[string]interface{} {
 	return New(s).Map()
 }
 
+func MapWithTag(s interface{}, tagName string) map[string]interface{} {
+	return NewWithTag(s, tagName).Map()
+}
+
 // FillMap is the same as Map. Instead of returning the output, it fills the
 // given map.
 func FillMap(s interface{}, out map[string]interface{}) {
@@ -468,6 +492,16 @@ func Fields(s interface{}) []*Field {
 // Names() method.  It panics if s's kind is not struct.
 func Names(s interface{}) []string {
 	return New(s).Names()
+}
+
+func NamesWithTag(s interface{}, tagName string) []string {
+	fields := NewWithTag(s, tagName).structFields()
+
+	arr := make([]string, len(fields))
+	for i, field := range fields {
+		arr[i] = field.Tag.Get(tagName)
+	}
+	return arr
 }
 
 // IsZero returns true if all fields is equal to a zero value. For more info

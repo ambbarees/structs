@@ -262,6 +262,18 @@ func (s *Struct) TagNames() []string {
 	return names
 }
 
+func (s *Struct) TagNamesDeep() []string {
+	fields := getFieldsDeep(s.value, s.TagName)
+
+	names := make([]string, len(fields))
+
+	for i, field := range fields {
+		names[i] = field.Tag(s.TagName)
+	}
+
+	return names
+}
+
 func getFields(v reflect.Value, tagName string) []*Field {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -284,6 +296,43 @@ func getFields(v reflect.Value, tagName string) []*Field {
 		}
 
 		fields = append(fields, f)
+
+	}
+
+	return fields
+}
+
+func getFieldsDeep(v reflect.Value, tagName string) []*Field {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	t := v.Type()
+
+	var fields []*Field
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		if tag := field.Tag.Get(tagName); tag == "-" {
+			continue
+		}
+
+		val := v.FieldByName(field.Name)
+		if IsStruct(val.Interface()) {
+			if _, tagOpts := parseTag(field.Tag.Get(tagName)); len(tagOpts) != 0 {
+				fields = append(fields, getFieldsDeep(val, tagName)...)
+			}
+			continue
+		} else {
+
+			f := &Field{
+				field: field,
+				value: v.FieldByName(field.Name),
+			}
+
+			fields = append(fields, f)
+		}
 
 	}
 
@@ -495,13 +544,7 @@ func Names(s interface{}) []string {
 }
 
 func NamesWithTag(s interface{}, tagName string) []string {
-	fields := NewWithTag(s, tagName).structFields()
-
-	arr := make([]string, len(fields))
-	for i, field := range fields {
-		arr[i] = field.Tag.Get(tagName)
-	}
-	return arr
+	return NewWithTag(s, tagName).TagNamesDeep()
 }
 
 // IsZero returns true if all fields is equal to a zero value. For more info

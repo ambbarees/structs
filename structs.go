@@ -268,7 +268,7 @@ func (s *Struct) TagNamesDeep() []string {
 	names := make([]string, len(fields))
 
 	for i, field := range fields {
-		names[i] = field.Tag(s.TagName)
+		names[i], _ = parseTag(field.Tag(s.TagName))
 	}
 
 	return names
@@ -318,9 +318,10 @@ func getFieldsDeep(v reflect.Value, tagName string) []*Field {
 			continue
 		}
 
+		_, tagOpts := parseTag(field.Tag.Get(tagName))
 		val := v.FieldByName(field.Name)
-		if IsStruct(val.Interface()) {
-			if _, tagOpts := parseTag(field.Tag.Get(tagName)); len(tagOpts) != 0 {
+		if IsStruct(val.Interface()) && !tagOpts.Has("omitnested") {
+			if len(tagOpts) != 0 {
 				fields = append(fields, getFieldsDeep(val, tagName)...)
 			}
 			continue
